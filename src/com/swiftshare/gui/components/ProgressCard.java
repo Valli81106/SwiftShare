@@ -7,72 +7,112 @@ import javax.swing.*;
 import java.awt.*;
 
 public class ProgressCard extends JPanel {
-    private TransferStatus status;
-    private JLabel fileNameLabel;
+    private TransferStatus transferStatus;
     private JProgressBar progressBar;
     private JLabel statusLabel;
-    private JLabel speedLabel;
+    private JLabel detailsLabel;
     
     public ProgressCard(TransferStatus status) {
-        this.status = status;
-        setupPanel();
-        createComponents();
-        updateStatus(status);
+        this.transferStatus = status;
+        initComponents();
+        updateProgress();
     }
     
-    private void setupPanel() {
-        setLayout(new BorderLayout(10, 5));
+    private void initComponents() {
+        setLayout(new BorderLayout());
+        setBackground(Color.WHITE);
         setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(UIConstants.PRIMARY_COLOR, 2),
-            BorderFactory.createEmptyBorder(10, 10, 10, 10)
+            BorderFactory.createLineBorder(UIConstants.BORDER_COLOR),
+            BorderFactory.createEmptyBorder(10, 15, 10, 15)
         ));
-        setBackground(new Color(230, 240, 255));
-        setMaximumSize(new Dimension(Integer.MAX_VALUE, 90));
-    }
-    
-    private void createComponents() {
-        JPanel topPanel = new JPanel(new BorderLayout());
-        topPanel.setOpaque(false);
         
-        fileNameLabel = new JLabel();
-        fileNameLabel.setFont(UIConstants.NORMAL_FONT);
+        // Top row: file name and status
+        JPanel topPanel = new JPanel(new BorderLayout());
+        topPanel.setBackground(Color.WHITE);
+        
+        JLabel fileNameLabel = new JLabel("File: " + getFileNameFromStatus());
+        fileNameLabel.setFont(UIConstants.BODY_FONT);
         
         statusLabel = new JLabel();
         statusLabel.setFont(UIConstants.SMALL_FONT);
-        statusLabel.setForeground(UIConstants.TEXT_SECONDARY);
         
         topPanel.add(fileNameLabel, BorderLayout.WEST);
         topPanel.add(statusLabel, BorderLayout.EAST);
         
+        // Progress bar
         progressBar = new JProgressBar(0, 100);
-        progressBar.setStringPainted(true);
-        progressBar.setPreferredSize(new Dimension(0, 25));
-        progressBar.setForeground(UIConstants.PRIMARY_COLOR);
+        progressBar.setPreferredSize(new Dimension(300, 20));
         
-        speedLabel = new JLabel();
-        speedLabel.setFont(UIConstants.SMALL_FONT);
-        speedLabel.setForeground(UIConstants.TEXT_SECONDARY);
-        speedLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        // Details row
+        detailsLabel = new JLabel();
+        detailsLabel.setFont(UIConstants.SMALL_FONT);
+        detailsLabel.setForeground(Color.GRAY);
+        
+        // Control buttons
+        JPanel controlPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        controlPanel.setBackground(Color.WHITE);
+        
+        JButton pauseBtn = new JButton("Pause");
+        JButton cancelBtn = new JButton("Cancel");
+        
+        pauseBtn.setFont(UIConstants.SMALL_FONT);
+        cancelBtn.setFont(UIConstants.SMALL_FONT);
+        
+        controlPanel.add(pauseBtn);
+        controlPanel.add(cancelBtn);
+        
+        // Layout
+        JPanel centerPanel = new JPanel();
+        centerPanel.setLayout(new BoxLayout(centerPanel, BoxLayout.Y_AXIS));
+        centerPanel.setBackground(Color.WHITE);
+        centerPanel.add(progressBar);
+        centerPanel.add(Box.createVerticalStrut(5));
+        centerPanel.add(detailsLabel);
         
         add(topPanel, BorderLayout.NORTH);
-        add(progressBar, BorderLayout.CENTER);
-        add(speedLabel, BorderLayout.SOUTH);
+        add(centerPanel, BorderLayout.CENTER);
+        add(controlPanel, BorderLayout.SOUTH);
     }
     
-    public void updateStatus(TransferStatus status) {
-        this.status = status;
+    private String getFileNameFromStatus() {
+        // This would come from TransferStatus in real implementation
+        return "example_file.txt";
+    }
+    
+    public void updateProgress() {
+        int progress = (int) transferStatus.getProgress();
+        progressBar.setValue(progress);
         
-        fileNameLabel.setText(status.getFileName());
-        progressBar.setValue(status.getProgressPercentage());
-        progressBar.setString(status.getProgressPercentage() + "%");
-        statusLabel.setText(status.getState().toString());
-        speedLabel.setText(status.getFormattedSpeed());
+        statusLabel.setText(transferStatus.getState().toString());
+        statusLabel.setForeground(getStatusColor(transferStatus.getState()));
         
-        if (status.isComplete()) {
-            progressBar.setForeground(UIConstants.SUCCESS_COLOR);
-            statusLabel.setText("COMPLETED");
-        } else if (status.getState() == TransferStatus.State.FAILED) {
-            progressBar.setForeground(UIConstants.DANGER_COLOR);
+        String details = String.format("%d/%d chunks • %.2f MB/s • %s transferred",
+            transferStatus.getChunksTransferred(),
+            transferStatus.getTotalChunks(),
+            transferStatus.getSpeedMBps(),
+            formatBytes(transferStatus.getBytesTransferred())
+        );
+        detailsLabel.setText(details);
+    }
+    
+    private Color getStatusColor(TransferStatus.State state) {
+        switch (state) {
+            case IN_PROGRESS: return UIConstants.PRIMARY_COLOR;
+            case COMPLETED: return UIConstants.ACCENT_COLOR;
+            case FAILED: return UIConstants.DANGER_COLOR;
+            case PAUSED: return UIConstants.WARNING_COLOR;
+            default: return Color.GRAY;
         }
+    }
+    
+    private String formatBytes(long bytes) {
+        if (bytes < 1024) return bytes + " B";
+        else if (bytes < 1024 * 1024) return String.format("%.1f KB", bytes / 1024.0);
+        else return String.format("%.1f MB", bytes / (1024.0 * 1024.0));
+    }
+    
+    public void setTransferStatus(TransferStatus status) {
+        this.transferStatus = status;
+        updateProgress();
     }
 }

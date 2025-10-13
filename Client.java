@@ -2,7 +2,7 @@
 import java.net.*;
 import java.io.*;
 
-public class SimpleClient {
+public class Client {
     public static void main(String[] args) {
         try {
             // Step 1: Connect to the server at localhost:5000
