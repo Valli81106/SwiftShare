@@ -2,33 +2,24 @@ package com.swiftshare.gui.controllers;
 
 import com.swiftshare.gui.listeners.RoomEventListener;
 import com.swiftshare.models.FileMetadata;
-import com.swiftshare.models.PeerInfo;
 import com.swiftshare.models.RoomInfo;
-import com.swiftshare.network.manager.NetworkManager;
-import com.swiftshare.network.manager.NetworkCallback;
 
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Controller for room operations
+ * MOCK VERSION - No networking integration yet
+ */
 public class RoomController {
     
     private RoomInfo currentRoom;
     private List<RoomEventListener> listeners;
-    private NetworkManager networkManager;
     
-    public RoomController(NetworkManager networkManager) {
-        this.networkManager = networkManager;
+    public RoomController() {
         this.listeners = new ArrayList<>();
-        setupNetworkCallbacks();
-    }
-    
-    /**
-     * Setup callbacks to forward network events to GUI listeners
-     */
-    private void setupNetworkCallbacks() {
-        // The NetworkManager already has callbacks set in HomeController
-        // We just need to add our own listener forwarding
+        System.out.println("RoomController initialized (Mock Mode)");
     }
     
     /**
@@ -36,6 +27,7 @@ public class RoomController {
      */
     public void setCurrentRoom(RoomInfo room) {
         this.currentRoom = room;
+        System.out.println("MOCK: Current room set to: " + room.getRoomId());
     }
     
     /**
@@ -60,67 +52,38 @@ public class RoomController {
     }
     
     /**
-     * Send a file to the room
+     * Send a file to the room (MOCK)
      */
     public void sendFile(File file) {
-        if (!networkManager.isConnected()) {
-            notifyError("Not connected to a room");
-            return;
-        }
+        System.out.println("MOCK: Sending file: " + file.getName());
+        System.out.println("MOCK: File size: " + file.length() + " bytes");
         
-        // TODO: Get file chunks from Gauri's FileManager
-        // For now, create a mock metadata
-        FileMetadata metadata = new FileMetadata(
-            file.getName(),
-            file.length(),
-            "hash-" + System.currentTimeMillis(),
-            currentRoom.getRoomId()
-        );
-        
-        // TODO: Get actual chunks from file I/O team
-        byte[][] chunks = new byte[0][]; // Placeholder
-        
-        // Send file through network manager
-        networkManager.sendFile(file, chunks, metadata);
-        
-        System.out.println("Sending file: " + file.getName());
+        // TODO: Will integrate with networking and file I/O in next phase
     }
     
     /**
-     * Accept an incoming file offer
-     */
-    public void acceptFile(String fileName) {
-        networkManager.acceptFileOffer(fileName);
-    }
-    
-    /**
-     * Reject an incoming file offer
-     */
-    public void rejectFile(String fileName) {
-        networkManager.rejectFileOffer(fileName);
-    }
-    
-    /**
-     * Leave the current room
+     * Leave the current room (MOCK)
      */
     public void leaveRoom() {
-        networkManager.disconnect();
+        System.out.println("MOCK: Leaving room: " + 
+            (currentRoom != null ? currentRoom.getRoomId() : "none"));
         currentRoom = null;
-        System.out.println("Left the room");
     }
     
     /**
-     * Get peer count
+     * Get peer count (MOCK)
      */
     public int getPeerCount() {
-        return networkManager.getConnectedPeerCount();
+        // Return mock count
+        return 0;
     }
     
     /**
-     * Check if connected
+     * Check if connected (MOCK)
      */
     public boolean isConnected() {
-        return networkManager.isConnected();
+        // Always return false in mock mode
+        return false;
     }
     
     /**

@@ -3,134 +3,125 @@ package com.swiftshare.gui.frames;
 import com.swiftshare.gui.panels.HomePanel;
 import com.swiftshare.gui.panels.RoomPanel;
 import com.swiftshare.gui.utils.UIConstants;
+import com.swiftshare.gui.listeners.RoomEventListener;
+import com.swiftshare.models.RoomInfo;
+import com.swiftshare.models.PeerInfo;
+import com.swiftshare.models.FileMetadata;
 
 import javax.swing.*;
 import java.awt.*;
 
-/**
- * Main application window - uses CardLayout to switch between screens
- */
-public class MainFrame extends JFrame {
+public class MainFrame extends JFrame implements RoomEventListener {
     private CardLayout cardLayout;
-    private JPanel contentPanel;
-    
-    // Panel instances
+    private JPanel mainPanel;
     private HomePanel homePanel;
     private RoomPanel roomPanel;
     
-    // Card names
-    public static final String HOME_CARD = "HOME";
-    public static final String ROOM_CARD = "ROOM";
-    
     public MainFrame() {
-        initializeFrame();
-        initializePanels();
-        setupLayout();
+        initComponents();
+        setupFrame();
     }
     
-    private void initializeFrame() {
-        setTitle("SwiftShare - Ephemeral File Rooms");
-        setSize(UIConstants.WINDOW_WIDTH, UIConstants.WINDOW_HEIGHT);
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setLocationRelativeTo(null); // Center on screen
-        setMinimumSize(new Dimension(800, 600));
+    private void initComponents() {
+        cardLayout = new CardLayout();
+        mainPanel = new JPanel(cardLayout);
+        mainPanel.setBackground(UIConstants.BACKGROUND_COLOR);
         
-        // Set app icon (if you have one)
-        // ImageIcon icon = new ImageIcon(getClass().getResource("/icons/app-icon.png"));
-        // setIconImage(icon.getImage());
-    }
-    
-    private void initializePanels() {
-        // Create panels
         homePanel = new HomePanel(this);
         roomPanel = new RoomPanel(this);
+        
+        mainPanel.add(homePanel, "HOME");
+        mainPanel.add(roomPanel, "ROOM");
+        
+        add(mainPanel);
     }
     
-    private void setupLayout() {
-        // Create CardLayout container
-        cardLayout = new CardLayout();
-        contentPanel = new JPanel(cardLayout);
-        
-        // Add panels to card layout
-        contentPanel.add(homePanel, HOME_CARD);
-        contentPanel.add(roomPanel, ROOM_CARD);
-        
-        // Add to frame
-        add(contentPanel);
-        
-        // Show home panel initially
+    private void setupFrame() {
+        setTitle("SwiftShare - P2P File Sharing");
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setSize(UIConstants.WINDOW_WIDTH, UIConstants.WINDOW_HEIGHT);
+        setLocationRelativeTo(null); // Center on screen
+        setResizable(true);
+    }
+    
+    public void showHome() {
+        cardLayout.show(mainPanel, "HOME");
+        setTitle("SwiftShare - P2P File Sharing");
+    }
+    
+    public void showRoom() {
+        cardLayout.show(mainPanel, "ROOM");
+        setTitle("SwiftShare - Room: ROOM-12345");
+    }
+    
+    // RoomEventListener implementation
+    @Override
+    public void onRoomCreated(RoomInfo roomInfo) {
+        System.out.println("Room created: " + roomInfo.getRoomId());
+        showRoom();
+    }
+    
+    @Override
+    public void onRoomJoined(RoomInfo roomInfo) {
+        System.out.println("Room joined: " + roomInfo.getRoomId());
+        showRoom();
+    }
+    
+    @Override
+    public void onRoomLeft() {
+        System.out.println("Left room");
         showHome();
     }
     
-    /**
-     * Switch to home panel
-     */
-    public void showHome() {
-        cardLayout.show(contentPanel, HOME_CARD);
-        homePanel.onPanelShown(); // Refresh panel if needed
+    @Override
+    public void onPeerJoined(PeerInfo peerInfo) {
+        System.out.println("Peer joined: " + peerInfo.getPeerId());
     }
     
-    /**
-     * Switch to room panel
-     */
-    public void showRoom() {
-        cardLayout.show(contentPanel, ROOM_CARD);
-        roomPanel.onPanelShown(); // Initialize room view
+    @Override
+    public void onPeerLeft(PeerInfo peerInfo) {
+        System.out.println("Peer left: " + peerInfo.getPeerId());
     }
     
-    /**
-     * Get the home panel instance
-     */
-    public HomePanel getHomePanel() {
-        return homePanel;
+    @Override
+    public void onFileAdded(FileMetadata fileMetadata) {
+        System.out.println("File added: " + fileMetadata.getFileName());
     }
     
-    /**
-     * Get the room panel instance
-     */
-    public RoomPanel getRoomPanel() {
-        return roomPanel;
+    @Override
+    public void onFileRemoved(FileMetadata fileMetadata) {
+        System.out.println("File removed: " + fileMetadata.getFileName());
     }
     
-    /**
-     * Show error message dialog
-     */
-    public void showError(String message) {
-        JOptionPane.showMessageDialog(
-            this,
-            message,
-            "Error",
-            JOptionPane.ERROR_MESSAGE
-        );
+    @Override
+    public void onError(String errorMessage) {
+        JOptionPane.showMessageDialog(this, errorMessage, "Error", JOptionPane.ERROR_MESSAGE);
     }
     
-    /**
-     * Show info message dialog
-     */
-    public void showInfo(String message) {
-        JOptionPane.showMessageDialog(
-            this,
-            message,
-            "Information",
-            JOptionPane.INFORMATION_MESSAGE
-        );
-    }
-    
-    /**
-     * Main method to launch the application
-     */
+    // Main method to run the application
     public static void main(String[] args) {
-        // Set system look and feel
+        // Set system look and feel - FIXED VERSION
         try {
             UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
         } catch (Exception e) {
-            e.printStackTrace();
+            System.err.println("Error setting look and feel: " + e.getMessage());
+            // Continue with default look and feel
         }
         
         // Create and show GUI on Event Dispatch Thread
         SwingUtilities.invokeLater(() -> {
-            MainFrame frame = new MainFrame();
-            frame.setVisible(true);
+            try {
+                MainFrame mainFrame = new MainFrame();
+                mainFrame.setVisible(true);
+                System.out.println("SwiftShare GUI started successfully!");
+            } catch (Exception e) {
+                System.err.println("Error starting application: " + e.getMessage());
+                e.printStackTrace();
+                JOptionPane.showMessageDialog(null, 
+                    "Failed to start application: " + e.getMessage(), 
+                    "Startup Error", 
+                    JOptionPane.ERROR_MESSAGE);
+            }
         });
     }
 }

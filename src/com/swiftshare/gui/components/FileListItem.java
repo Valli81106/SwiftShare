@@ -1,5 +1,6 @@
 package com.swiftshare.gui.components;
 
+import com.swiftshare.gui.utils.ComponentFactory;
 import com.swiftshare.gui.utils.UIConstants;
 import com.swiftshare.models.FileMetadata;
 
@@ -8,55 +9,57 @@ import java.awt.*;
 
 public class FileListItem extends JPanel {
     private FileMetadata fileMetadata;
-    private JLabel fileNameLabel;
-    private JLabel fileSizeLabel;
-    private JButton downloadButton;
     
     public FileListItem(FileMetadata fileMetadata) {
         this.fileMetadata = fileMetadata;
-        setupPanel();
-        createComponents();
+        initComponents();
     }
     
-    private void setupPanel() {
-        setLayout(new BorderLayout(10, 5));
-        setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(UIConstants.TEXT_SECONDARY, 1),
-            BorderFactory.createEmptyBorder(10, 10, 10, 10)
-        ));
+    private void initComponents() {
+        setLayout(new BorderLayout());
         setBackground(Color.WHITE);
-        setMaximumSize(new Dimension(Integer.MAX_VALUE, 70));
+        setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createMatteBorder(0, 0, 1, 0, UIConstants.BORDER_COLOR),
+            BorderFactory.createEmptyBorder(10, 15, 10, 15)
+        ));
+        
+        // File icon and name
+        JPanel leftPanel = new JPanel(new BorderLayout());
+        leftPanel.setBackground(Color.WHITE);
+        
+        JLabel fileNameLabel = new JLabel(fileMetadata.getFileName());
+        fileNameLabel.setFont(UIConstants.SUBHEADER_FONT);
+        
+        JLabel fileDetailsLabel = new JLabel(getFileDetails());
+        fileDetailsLabel.setFont(UIConstants.SMALL_FONT);
+        fileDetailsLabel.setForeground(Color.GRAY);
+        
+        leftPanel.add(fileNameLabel, BorderLayout.NORTH);
+        leftPanel.add(fileDetailsLabel, BorderLayout.SOUTH);
+        
+        // Download button
+        JButton downloadBtn = ComponentFactory.createSecondaryButton("Download");
+        downloadBtn.setFont(UIConstants.SMALL_FONT);
+        
+        add(leftPanel, BorderLayout.CENTER);
+        add(downloadBtn, BorderLayout.EAST);
     }
     
-    private void createComponents() {
-        JPanel infoPanel = new JPanel();
-        infoPanel.setLayout(new BoxLayout(infoPanel, BoxLayout.Y_AXIS));
-        infoPanel.setOpaque(false);
-        
-        fileNameLabel = new JLabel(fileMetadata.getFileName());
-        fileNameLabel.setFont(UIConstants.NORMAL_FONT);
-        
-        fileSizeLabel = new JLabel(fileMetadata.getFormattedFileSize());
-        fileSizeLabel.setFont(UIConstants.SMALL_FONT);
-        fileSizeLabel.setForeground(UIConstants.TEXT_SECONDARY);
-        
-        infoPanel.add(fileNameLabel);
-        infoPanel.add(Box.createVerticalStrut(5));
-        infoPanel.add(fileSizeLabel);
-        
-        downloadButton = new JButton("Download");
-        downloadButton.setFont(UIConstants.SMALL_FONT);
-        downloadButton.setBackground(UIConstants.PRIMARY_COLOR);
-        downloadButton.setForeground(Color.WHITE);
-        downloadButton.setFocusPainted(false);
-        downloadButton.addActionListener(e -> handleDownload());
-        
-        add(infoPanel, BorderLayout.CENTER);
-        add(downloadButton, BorderLayout.EAST);
+    private String getFileDetails() {
+        return String.format("%s • %d chunks • %s", 
+            formatFileSize(fileMetadata.getFileSize()),
+            fileMetadata.getTotalChunks(),
+            fileMetadata.getSenderId() != null ? fileMetadata.getSenderId() : "Unknown"
+        );
     }
     
-    private void handleDownload() {
-        // TODO: Integrate with networking layer
-        JOptionPane.showMessageDialog(this, "Download started for: " + fileMetadata.getFileName());
+    private String formatFileSize(long size) {
+        if (size < 1024) return size + " B";
+        else if (size < 1024 * 1024) return String.format("%.1f KB", size / 1024.0);
+        else return String.format("%.1f MB", size / (1024.0 * 1024.0));
+    }
+    
+    public FileMetadata getFileMetadata() {
+        return fileMetadata;
     }
 }

@@ -1,133 +1,96 @@
 package com.swiftshare.gui.panels;
 
-import com.swiftshare.gui.frames.MainFrame;
-import com.swiftshare.gui.dialogs.CreateRoomDialog;
-import com.swiftshare.gui.dialogs.JoinRoomDialog;
+import com.swiftshare.gui.utils.ComponentFactory;
 import com.swiftshare.gui.utils.UIConstants;
-import com.swiftshare.gui.controllers.HomeController;
-import com.swiftshare.models.RoomInfo;
+import com.swiftshare.gui.listeners.RoomEventListener;
 
 import javax.swing.*;
 import java.awt.*;
 
 public class HomePanel extends JPanel {
-    private MainFrame parentFrame;
-    private HomeController homeController;
-    private JButton createRoomButton;
-    private JButton joinRoomButton;
-    private JLabel titleLabel;
-    private JLabel subtitleLabel;
+    private RoomEventListener roomEventListener;
+    private JButton createRoomBtn;
+    private JButton joinRoomBtn;
     
-    public HomePanel(MainFrame parentFrame) {
-        this.parentFrame = parentFrame;
-        this.homeController = new HomeController();
-        setupPanel();
-        createComponents();
-        layoutComponents();
+    public HomePanel(RoomEventListener listener) {
+        this.roomEventListener = listener;
+        initComponents();
     }
     
-    private void setupPanel() {
-        setLayout(new GridBagLayout());
+    private void initComponents() {
+        setLayout(new BorderLayout());
         setBackground(UIConstants.BACKGROUND_COLOR);
-    }
-    
-    private void createComponents() {
-        titleLabel = new JLabel("SwiftShare");
-        titleLabel.setFont(UIConstants.TITLE_FONT);
-        titleLabel.setForeground(UIConstants.PRIMARY_COLOR);
         
-        subtitleLabel = new JLabel("Ephemeral File Transfer Rooms");
-        subtitleLabel.setFont(UIConstants.SUBTITLE_FONT);
-        subtitleLabel.setForeground(UIConstants.TEXT_SECONDARY);
-        
-        createRoomButton = new JButton("Create New Room");
-        createRoomButton.setFont(UIConstants.BUTTON_FONT);
-        createRoomButton.setPreferredSize(new Dimension(250, 50));
-        createRoomButton.setBackground(UIConstants.PRIMARY_COLOR);
-        createRoomButton.setForeground(Color.WHITE);
-        createRoomButton.setFocusPainted(false);
-        createRoomButton.setBorderPainted(false);
-        createRoomButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        createRoomButton.addActionListener(e -> handleCreateRoom());
-        
-        joinRoomButton = new JButton("Join Existing Room");
-        joinRoomButton.setFont(UIConstants.BUTTON_FONT);
-        joinRoomButton.setPreferredSize(new Dimension(250, 50));
-        joinRoomButton.setBackground(UIConstants.SECONDARY_COLOR);
-        joinRoomButton.setForeground(Color.WHITE);
-        joinRoomButton.setFocusPainted(false);
-        joinRoomButton.setBorderPainted(false);
-        joinRoomButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        joinRoomButton.addActionListener(e -> handleJoinRoom());
-        
-        addHoverEffect(createRoomButton, UIConstants.PRIMARY_COLOR, UIConstants.PRIMARY_DARK);
-        addHoverEffect(joinRoomButton, UIConstants.SECONDARY_COLOR, UIConstants.SECONDARY_DARK);
-    }
-    
-    private void layoutComponents() {
+        // Main content panel
+        JPanel contentPanel = new JPanel(new GridBagLayout());
+        contentPanel.setBackground(UIConstants.BACKGROUND_COLOR);
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.gridx = 0;
-        gbc.insets = new Insets(10, 0, 10, 0);
         
+        // Title
+        JLabel titleLabel = ComponentFactory.createTitleLabel("SwiftShare");
+        JLabel subtitleLabel = new JLabel("Peer-to-Peer File Sharing");
+        subtitleLabel.setFont(UIConstants.SUBHEADER_FONT);
+        subtitleLabel.setForeground(Color.GRAY);
+        subtitleLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        
+        // Button panel
+        JPanel buttonPanel = new JPanel(new GridLayout(2, 1, 0, 15));
+        buttonPanel.setBackground(UIConstants.BACKGROUND_COLOR);
+        buttonPanel.setBorder(BorderFactory.createEmptyBorder(40, 100, 40, 100));
+        
+        createRoomBtn = ComponentFactory.createPrimaryButton("Create New Room");
+        joinRoomBtn = ComponentFactory.createSecondaryButton("Join Existing Room");
+        
+        createRoomBtn.addActionListener(e -> showCreateRoomDialog());
+        joinRoomBtn.addActionListener(e -> showJoinRoomDialog());
+        
+        buttonPanel.add(createRoomBtn);
+        buttonPanel.add(joinRoomBtn);
+        
+        // Layout
+        gbc.gridx = 0;
         gbc.gridy = 0;
-        add(titleLabel, gbc);
+        gbc.insets = new Insets(0, 0, 10, 0);
+        contentPanel.add(titleLabel, gbc);
         
         gbc.gridy = 1;
         gbc.insets = new Insets(0, 0, 40, 0);
-        add(subtitleLabel, gbc);
+        contentPanel.add(subtitleLabel, gbc);
         
         gbc.gridy = 2;
-        gbc.insets = new Insets(10, 0, 10, 0);
-        add(createRoomButton, gbc);
+        gbc.insets = new Insets(0, 0, 0, 0);
+        contentPanel.add(buttonPanel, gbc);
         
-        gbc.gridy = 3;
-        add(joinRoomButton, gbc);
-        
-        gbc.gridy = 4;
-        gbc.insets = new Insets(30, 0, 0, 0);
-        JLabel infoLabel = new JLabel("Create temporary rooms that auto-destruct after time limit");
-        infoLabel.setFont(UIConstants.SMALL_FONT);
-        infoLabel.setForeground(UIConstants.TEXT_SECONDARY);
-        add(infoLabel, gbc);
+        add(contentPanel, BorderLayout.CENTER);
     }
     
-    private void handleCreateRoom() {
-        CreateRoomDialog dialog = new CreateRoomDialog(parentFrame, homeController); // MODIFIED
-        dialog.setVisible(true);
+    private void showCreateRoomDialog() {
+        // Mock room creation
+        JOptionPane.showMessageDialog(this, 
+            "Room created successfully!\nRoom ID: ROOM-12345\nPassword: (set)", 
+            "Room Created", 
+            JOptionPane.INFORMATION_MESSAGE);
         
-        if (dialog.isRoomCreated()) {
-            RoomInfo roomInfo = dialog.getRoomInfo();
-            parentFrame.getRoomPanel().setRoomInfo(roomInfo);
-            parentFrame.getRoomPanel().setNetworkManager(homeController.getNetworkManager());
-            parentFrame.showRoom();
+        // Simulate room creation callback
+        if (roomEventListener != null) {
+            // In real implementation, this would come from RoomManager
+            // roomEventListener.onRoomCreated(roomInfo);
         }
     }
     
-    private void handleJoinRoom() {
-       JoinRoomDialog dialog = new JoinRoomDialog(parentFrame, homeController); // MODIFIED
-        dialog.setVisible(true);
-        
-        if (dialog.isJoinSuccessful()) {
-            RoomInfo roomInfo = dialog.getRoomInfo();
-            parentFrame.getRoomPanel().setRoomInfo(roomInfo);
-            parentFrame.getRoomPanel().setNetworkManager(homeController.getNetworkManager());
-            parentFrame.showRoom();
-        }
-    }
-    
-    private void addHoverEffect(JButton button, Color normalColor, Color hoverColor) {
-        button.addMouseListener(new java.awt.event.MouseAdapter() {
-            public void mouseEntered(java.awt.event.MouseEvent evt) {
-                button.setBackground(hoverColor);
-            }
+    private void showJoinRoomDialog() {
+        String roomId = JOptionPane.showInputDialog(this, "Enter Room ID:", "Join Room", JOptionPane.QUESTION_MESSAGE);
+        if (roomId != null && !roomId.trim().isEmpty()) {
+            // Mock room joining
+            JOptionPane.showMessageDialog(this, 
+                "Joined room successfully!", 
+                "Success", 
+                JOptionPane.INFORMATION_MESSAGE);
             
-            public void mouseExited(java.awt.event.MouseEvent evt) {
-                button.setBackground(normalColor);
+            // Simulate room join callback
+            if (roomEventListener != null) {
+                // roomEventListener.onRoomJoined(roomInfo);
             }
-        });
-    }
-    
-    public void onPanelShown() {
-        // Refresh panel if needed
+        }
     }
 }
