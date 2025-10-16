@@ -1,4 +1,4 @@
-package com.swiftshare.file input output.file i.fileio;
+package com.swiftshare.fileio.core;
 
 /**
  * Data structure for received chunks (RECEIVER side)

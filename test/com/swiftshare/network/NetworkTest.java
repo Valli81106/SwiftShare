@@ -1,7 +1,5 @@
 package com.swiftshare.network;
 
-import com.swiftshare.network.core.*;
-
 // tests all the core networking stuff
 public class NetworkTest {
     public static void main(String[] args) throws Exception {

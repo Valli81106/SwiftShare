@@ -2,10 +2,8 @@ package com.swiftshare.gui.controllers;
 
 import com.swiftshare.gui.listeners.RoomEventListener;
 import com.swiftshare.models.FileMetadata;
-import com.swiftshare.models.PeerInfo;
 import com.swiftshare.models.RoomInfo;
 import com.swiftshare.network.manager.NetworkManager;
-import com.swiftshare.network.manager.NetworkCallback;
 
 import java.io.File;
 import java.util.ArrayList;

@@ -1,4 +1,4 @@
-package com.swiftshare.file input output.file i.o;
+package com.swiftshare.fileio.core;
 
 import java.io.*;
 import java.security.MessageDigest;
