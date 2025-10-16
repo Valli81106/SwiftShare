@@ -59,7 +59,8 @@ public class RoomClient {
             }
         } catch (IOException e) {
             System.err.println("Connection lost: " + e.getMessage());
-        } finally {
+        }
+        finally {
             disconnect();
             if (callback != null) {
                 callback.onDisconnected();

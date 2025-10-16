@@ -1,6 +1,5 @@
 package com.swiftshare.gui.dialogs;
 
-import com.swiftshare.gui.utils.UIConstants;
 import com.swiftshare.models.RoomInfo;
 import com.swiftshare.gui.controllers.HomeController;
 

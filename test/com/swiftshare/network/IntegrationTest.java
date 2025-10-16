@@ -1,8 +1,5 @@
 package com.swiftshare.network;
 
-import com.swiftshare.network.manager.*;
-import com.swiftshare.models.*;
-
 // tests the full NetworkManager API (what GUI will use)
 public class IntegrationTest {
     public static void main(String[] args) throws Exception {

@@ -1,6 +1,7 @@
 package com.swiftshare.network.manager;
 
-import com.swiftshare.models.*;
+import com.swiftshare.models.FileMetadata;
+import com.swiftshare.models.PeerInfo;
 
 // callback interface for GUI to get network events
 public interface NetworkCallback {

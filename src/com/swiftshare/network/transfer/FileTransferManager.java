@@ -1,7 +1,9 @@
 package com.swiftshare.network.transfer;
 
-import com.swiftshare.network.core.*;
-import com.swiftshare.models.*;
+import com.swiftshare.models.FileMetadata;
+import com.swiftshare.network.core.Message;
+import com.swiftshare.network.core.RoomClient;
+
 import java.io.*;
 
 // handles sending and receiving files
