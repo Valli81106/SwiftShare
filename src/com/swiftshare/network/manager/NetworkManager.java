@@ -14,6 +14,8 @@ public class NetworkManager {
     private NetworkCallback callback;
     private String currentRoomId;
     private boolean isHost;
+    private long roomExpiryTime;
+    private static final long DEFAULT_ROOM_DURATION = 24 * 60 * 60 * 1000;
 
     public NetworkManager(NetworkCallback callback) {
         this.callback = callback;
@@ -26,6 +28,12 @@ public class NetworkManager {
             System.out.println("Creating room on port " + port + "...");
 
             server = new RoomServer(port);
+
+            // Set expiry time
+            roomExpiryTime = System.currentTimeMillis() + DEFAULT_ROOM_DURATION;
+
+            // Start expiry check in background
+            startExpiryCheck();
 
             // setup callbacks for server events
             server.setCallback(new RoomServer.ServerCallback() {
@@ -80,7 +88,13 @@ public class NetworkManager {
             return false;
         }
     }
-
+    public boolean createRoom(int port, String password) {
+        boolean success = createRoom(port);
+        if (success && password != null && !password.isEmpty()) {
+            System.out.println("Room created with password protection");
+        }
+        return success;
+    }
     // join an existing room
     public boolean joinRoom(String host, int port) {
         try {
@@ -160,7 +174,15 @@ public class NetworkManager {
             return false;
         }
     }
-
+    public boolean joinRoom(String host, int port, String password) {
+        // Send password when joining
+        boolean connected = joinRoom(host, port);
+        if (connected && password != null) {
+            // Send password verification message
+            client.sendMessage(new Message("PASSWORD_CHECK", password));
+        }
+        return connected;
+    }
     // send a file to all peers
     public void sendFile(File file, byte[][] chunks, FileMetadata metadata) {
         if (client == null || !client.isConnected()) {
