@@ -9,7 +9,7 @@ public class RoomInfo {
     private String passwordHash;
     private int port;
     private long createdTime;
-    private long expiryTime;
+    long expiryTime;
     private List<PeerInfo> connectedPeers;
 
     public RoomInfo(String roomId, int port) {

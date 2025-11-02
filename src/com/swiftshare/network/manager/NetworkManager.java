@@ -2,6 +2,7 @@ package com.swiftshare.network.manager;
 
 import com.swiftshare.models.FileMetadata;
 import com.swiftshare.models.PeerInfo;
+import com.swiftshare.models.RoomInfo;
 import com.swiftshare.network.core.Message;
 import com.swiftshare.network.core.PeerConnection;
 import com.swiftshare.network.core.RoomClient;
@@ -10,6 +11,8 @@ import com.swiftshare.network.transfer.FileTransferManager;
 
 import java.io.File;
 import java.io.IOException;
+
+import static com.swiftshare.models.RoomInfo.*;
 
 // main API for GUI and other teams
 public class NetworkManager {
@@ -20,6 +23,7 @@ public class NetworkManager {
     private String currentRoomId;
     private boolean isHost;
     private long roomExpiryTime;
+    private Thread expiryCheckThread;
     private static final long DEFAULT_ROOM_DURATION = 24 * 60 * 60 * 1000;
 
     public NetworkManager(NetworkCallback callback) {
@@ -93,6 +97,48 @@ public class NetworkManager {
             return false;
         }
     }
+
+    // Add the missing startExpiryCheck method
+    private void startExpiryCheck() {
+        expiryCheckThread = new Thread(() -> {
+            while (isHost && server != null) {
+                try {
+                    Thread.sleep(60000); // check every minute
+
+                    if (System.currentTimeMillis() > roomExpiryTime) {
+                        System.out.println("Room expired!");
+                        if (callback != null) {
+                            callback.onError("Room expired after 24 hours");
+                        }
+                        disconnect();
+                        break;
+                    }
+                } catch (InterruptedException e) {
+                    break;
+                }
+            }
+        });
+        expiryCheckThread.start();
+    }
+
+    // GUI can call this to get remaining time
+    public long getRemainingTime() {
+        if (!isHost) return -1;
+        long remaining = roomExpiryTime - System.currentTimeMillis();
+        return remaining > 0 ? remaining : 0;
+    }
+
+    // GUI can call this to format time nicely
+    public String getRemainingTimeString() {
+        long ms = getRemainingTime();
+        if (ms <= 0) return "Expired";
+
+        long hours = ms / (60 * 60 * 1000);
+        long minutes = (ms % (60 * 60 * 1000)) / (60 * 1000);
+
+        return hours + "h " + minutes + "m remaining";
+    }
+
     public boolean createRoom(int port, String password) {
         boolean success = createRoom(port);
         if (success && password != null && !password.isEmpty()) {
@@ -100,6 +146,7 @@ public class NetworkManager {
         }
         return success;
     }
+
     // join an existing room
     public boolean joinRoom(String host, int port) {
         try {
@@ -179,6 +226,21 @@ public class NetworkManager {
             return false;
         }
     }
+    public long getExpiryTime() {
+        // If host, get RoomInfo from the server logic
+        // You'll likely need a way to get it from your server reference!
+        // Example if you store RoomInfo:
+        if (isHost && server != null) return RoomInfo.expiryTime();
+        else if (!isHost && client != null) {
+            // If client, get RoomInfo from the client's connected room
+            // Example if you store RoomInfo:
+            return RoomInfo.expiryTime();
+        }
+        // Fallback if no room info is available
+        return -1;
+    }
+
+
     public boolean joinRoom(String host, int port, String password) {
         // Send password when joining
         boolean connected = joinRoom(host, port);
@@ -188,6 +250,7 @@ public class NetworkManager {
         }
         return connected;
     }
+
     // send a file to all peers
     public void sendFile(File file, byte[][] chunks, FileMetadata metadata) {
         if (client == null || !client.isConnected()) {
@@ -330,60 +393,15 @@ public class NetworkManager {
             transferManager = null;
         }
 
+        // Stop expiry check thread
+        if (expiryCheckThread != null && expiryCheckThread.isAlive()) {
+            expiryCheckThread.interrupt();
+        }
+
         isHost = false;
         currentRoomId = null;
 
         System.out.println("Disconnected");
-    }
-    // Add after disconnect() method
-
-    // start checking if room expired
-    private void startExpiryCheck() {
-        new Thread(() -> {
-            while (isHost && server != null) {
-                try {
-                    Thread.sleep(60000); // check every minute
-
-                    if (System.currentTimeMillis() > roomExpiryTime) {
-                        System.out.println("Room expired!");
-                        if (callback != null) {
-                            callback.onError("Room expired after 24 hours");
-                        }
-                        disconnect();
-                        break;
-                    }
-                } catch (InterruptedException e) {
-                    break;
-                }
-            }
-        }).start();
-    }
-
-    // GUI can call this to get remaining time
-    public long getRemainingTime() {
-        if (!isHost) return -1;
-        long remaining = roomExpiryTime - System.currentTimeMillis();
-        return remaining > 0 ? remaining : 0;
-    }
-
-    // GUI can call this to format time nicely
-    public String getRemainingTimeString() {
-        long ms = getRemainingTime();
-        if (ms <= 0) return "Expired";
-
-        long hours = ms / (60 * 60 * 1000);
-        long minutes = (ms % (60 * 60 * 1000)) / (60 * 1000);
-
-        return hours + "h " + minutes + "m remaining";
-    }
-
-    // Allow custom duration (optional)
-    public boolean createRoom(int port, long durationMs) {
-        boolean success = createRoom(port);
-        if (success) {
-            roomExpiryTime = System.currentTimeMillis() + durationMs;
-        }
-        return success;
     }
 
     public boolean isConnected() {
