@@ -27,12 +27,12 @@ public class HomeController {
             
             @Override
             public void onPeerConnected(PeerInfo peer) {
-                System.out.println("Peer connected: " + peer.getPeerName());
+                System.out.println("Peer connected: " + peer.getPeerId());
             }
             
             @Override
             public void onPeerDisconnected(PeerInfo peer) {
-                System.out.println("Peer disconnected: " + peer.getPeerName());
+                System.out.println("Peer disconnected: " + peer.getPeerId());
             }
             
             @Override

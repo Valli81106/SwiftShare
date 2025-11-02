@@ -24,7 +24,7 @@ public class PeerListItem extends JPanel {
     }
     
     private void createComponents() {
-        nameLabel = new JLabel(peerInfo.getPeerName());
+        nameLabel = new JLabel(peerInfo.getPeerId());
         nameLabel.setFont(UIConstants.NORMAL_FONT);
         
         statusLabel = new JLabel("●");

@@ -48,7 +48,7 @@ public class RoomInfoBar extends JPanel {
     
     public void setRoomInfo(RoomInfo roomInfo) {
         roomIdLabel.setText("Room ID: " + roomInfo.getRoomId());
-        this.expiryTime = roomInfo.getExpiryTime();
+        this.expiryTime = RoomInfo.expiryTime();
         updatePeerCount(0);
     }
     
