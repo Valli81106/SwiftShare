@@ -9,7 +9,7 @@ public class ReceivedChunkData {
     public int totalChunks;
     public byte[][] chunks;           // Stores chunk data
     public boolean[] chunkReceived;   // Tracks which chunks we have
-    
+
     /**
      * Constructor - initializes arrays
      */
@@ -20,7 +20,7 @@ public class ReceivedChunkData {
         this.chunks = new byte[totalChunks][];
         this.chunkReceived = new boolean[totalChunks];
     }
-    
+
     /**
      * Called when a chunk arrives from network
      * @param chunkNumber Which chunk this is (0-indexed)
@@ -35,7 +35,7 @@ public class ReceivedChunkData {
             System.err.println("Invalid chunk number: " + chunkNumber);
         }
     }
-    
+
     /**
      * Calculate how much of the file we've received
      * @return Progress as percentage (0.0 to 100.0)
@@ -47,7 +47,7 @@ public class ReceivedChunkData {
         }
         return (received * 100.0) / totalChunks;
     }
-    
+
     /**
      * Check if we have all chunks
      * @return true if all chunks received
@@ -58,7 +58,7 @@ public class ReceivedChunkData {
         }
         return true;
     }
-    
+
     /**
      * Get list of missing chunk numbers
      * @return Array of missing chunk indices
@@ -69,7 +69,7 @@ public class ReceivedChunkData {
         for (boolean hasChunk : chunkReceived) {
             if (!hasChunk) missingCount++;
         }
-        
+
         // Create array of missing indices
         int[] missing = new int[missingCount];
         int index = 0;
@@ -78,7 +78,7 @@ public class ReceivedChunkData {
                 missing[index++] = i;
             }
         }
-        
+
         return missing;
     }
 }

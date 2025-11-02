@@ -18,6 +18,8 @@ public class TransferStatus {
     private double speedMBps;
     private long bytesTransferred;
     private String errorMessage;
+    private String fileId;
+    private String fileName;
 
     public TransferStatus() {
         this.state = State.WAITING;
@@ -66,5 +68,26 @@ public class TransferStatus {
     }
     public void setErrorMessage(String msg) {
         this.errorMessage = msg;
+    }
+    public String getFileId() {
+        return fileId;
+    }
+    public void setFileId(String fileId) {
+        this.fileId = fileId;
+    }
+    public boolean isComplete() {
+        return state == State.COMPLETED;
+    }
+    public String getFileName() {
+        return fileName;
+    }
+    public void setFileName(String fileName) {
+        this.fileName = fileName;
+    }
+    public int getProgressPercentage() {
+        return (int) getProgress();
+    }
+    public String getFormattedSpeed() {
+        return String.format("%.2f MB/s", speedMBps);
     }
 }

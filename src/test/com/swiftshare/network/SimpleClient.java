@@ -1,4 +1,4 @@
-// SimpleClient.java - Run this AFTER starting the server
+package test.com.swiftshare.network;// SimpleClient.java - Run this AFTER starting the server
 import java.net.*;
 import java.io.*;
 

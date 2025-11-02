@@ -11,22 +11,15 @@ public class RoomClient {
         void onDisconnected();
         void onError(String error);
     }
-
     private PeerConnection connection;
     private ExecutorService listenerThread;
     private ClientCallback callback;
     private boolean connected;
 
-    // Additional fields needed for host functionality
-    private boolean isHost;
-    private RoomServer server;
-    private long roomExpiryTime;
-
     public RoomClient(ClientCallback callback) {
         this.callback = callback;
         this.listenerThread = Executors.newSingleThreadExecutor();
     }
-
     public boolean connect(String host, int port) {
         try {
             System.out.println("Connecting to " + host + ":" + port + "...");
@@ -49,7 +42,6 @@ public class RoomClient {
             return false;
         }
     }
-
     private void listenForMessages() {
         try {
             while (connected && connection.isConnected()) {
@@ -75,69 +67,6 @@ public class RoomClient {
             }
         }
     }
-
-    // Method to create a room (for host functionality)
-    public boolean createRoom(int port) {
-        try {
-            server = new RoomServer(port);
-            isHost = true;
-            roomExpiryTime = System.currentTimeMillis() + (24 * 60 * 60 * 1000); // 24 hours
-            startExpiryCheck();
-            return true;
-        } catch (Exception e) {
-            System.err.println("Failed to create room: " + e.getMessage());
-            return false;
-        }
-    }
-
-    private void startExpiryCheck() {
-        new Thread(() -> {
-            while (isHost && server != null) {
-                try {
-                    Thread.sleep(60000); // check every minute
-
-                    if (System.currentTimeMillis() > roomExpiryTime) {
-                        System.out.println("Room expired!");
-                        if (callback != null) {
-                            callback.onError("Room expired after 24 hours");
-                        }
-                        disconnect();
-                        break;
-                    }
-                } catch (InterruptedException e) {
-                    break;
-                }
-            }
-        }).start();
-    }
-
-    // GUI can call this to get remaining time
-    public long getRemainingTime() {
-        if (!isHost) return -1;
-        long remaining = roomExpiryTime - System.currentTimeMillis();
-        return remaining > 0 ? remaining : 0;
-    }
-
-    // GUI can call this to format time nicely
-    public String getRemainingTimeString() {
-        long ms = getRemainingTime();
-        if (ms <= 0) return "Expired";
-
-        long hours = ms / (60 * 60 * 1000);
-        long minutes = (ms % (60 * 60 * 1000)) / (60 * 1000);
-
-        return hours + "h " + minutes + "m remaining";
-    }
-
-    // Allow custom duration (optional)
-    public boolean createRoom(int port, long durationMs) {
-        boolean success = createRoom(port);
-        if (success) {
-            roomExpiryTime = System.currentTimeMillis() + durationMs;
-        }
-        return success;
-    }
-
     public void sendMessage(Message message) {
         if (!connected || connection == null) {
             System.err.println("Cannot send: not connected");
@@ -153,22 +82,16 @@ public class RoomClient {
             }
         }
     }
-
     public PeerConnection getConnection() {
         return connection;
     }
-
     public void disconnect() {
         connected = false;
         if (connection != null) {
             connection.close();
         }
-        if (server != null) {
-            server.stop(); // Assuming RoomServer has a stop method
-        }
         listenerThread.shutdown();
     }
-
     public boolean isConnected() {
         return connected && connection != null && connection.isConnected();
     }

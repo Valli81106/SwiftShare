@@ -1,5 +1,10 @@
 package com.swiftshare.network;
 
+import com.swiftshare.models.FileMetadata;
+import com.swiftshare.models.PeerInfo;
+import com.swiftshare.network.manager.NetworkCallback;
+import com.swiftshare.network.manager.NetworkManager;
+
 // tests the full NetworkManager API (what GUI will use)
 public class IntegrationTest {
     public static void main(String[] args) throws Exception {

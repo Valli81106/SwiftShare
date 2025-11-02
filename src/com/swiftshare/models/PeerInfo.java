@@ -35,6 +35,9 @@ public class PeerInfo {
     public void setConnected(boolean connected) {
         this.connected = connected;
     }
+    public String getPeerName() {
+        return displayName != null ? displayName : peerId;
+    }
     @Override
     public String toString() {
         String name = displayName != null ? displayName : peerId;

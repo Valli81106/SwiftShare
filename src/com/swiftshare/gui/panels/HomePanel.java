@@ -17,7 +17,7 @@ public class HomePanel extends JPanel {
     private JButton joinRoomButton;
     private JLabel titleLabel;
     private JLabel subtitleLabel;
-    
+
     public HomePanel(MainFrame parentFrame) {
         this.parentFrame = parentFrame;
         this.homeController = new HomeController();
@@ -25,21 +25,21 @@ public class HomePanel extends JPanel {
         createComponents();
         layoutComponents();
     }
-    
+
     private void setupPanel() {
         setLayout(new GridBagLayout());
         setBackground(UIConstants.BACKGROUND_COLOR);
     }
-    
+
     private void createComponents() {
         titleLabel = new JLabel("SwiftShare");
         titleLabel.setFont(UIConstants.TITLE_FONT);
         titleLabel.setForeground(UIConstants.PRIMARY_COLOR);
-        
+
         subtitleLabel = new JLabel("Ephemeral File Transfer Rooms");
         subtitleLabel.setFont(UIConstants.SUBTITLE_FONT);
         subtitleLabel.setForeground(UIConstants.TEXT_SECONDARY);
-        
+
         createRoomButton = new JButton("Create New Room");
         createRoomButton.setFont(UIConstants.BUTTON_FONT);
         createRoomButton.setPreferredSize(new Dimension(250, 50));
@@ -49,7 +49,7 @@ public class HomePanel extends JPanel {
         createRoomButton.setBorderPainted(false);
         createRoomButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
         createRoomButton.addActionListener(e -> handleCreateRoom());
-        
+
         joinRoomButton = new JButton("Join Existing Room");
         joinRoomButton.setFont(UIConstants.BUTTON_FONT);
         joinRoomButton.setPreferredSize(new Dimension(250, 50));
@@ -59,30 +59,30 @@ public class HomePanel extends JPanel {
         joinRoomButton.setBorderPainted(false);
         joinRoomButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
         joinRoomButton.addActionListener(e -> handleJoinRoom());
-        
+
         addHoverEffect(createRoomButton, UIConstants.PRIMARY_COLOR, UIConstants.PRIMARY_DARK);
         addHoverEffect(joinRoomButton, UIConstants.SECONDARY_COLOR, UIConstants.SECONDARY_DARK);
     }
-    
+
     private void layoutComponents() {
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.gridx = 0;
         gbc.insets = new Insets(10, 0, 10, 0);
-        
+
         gbc.gridy = 0;
         add(titleLabel, gbc);
-        
+
         gbc.gridy = 1;
         gbc.insets = new Insets(0, 0, 40, 0);
         add(subtitleLabel, gbc);
-        
+
         gbc.gridy = 2;
         gbc.insets = new Insets(10, 0, 10, 0);
         add(createRoomButton, gbc);
-        
+
         gbc.gridy = 3;
         add(joinRoomButton, gbc);
-        
+
         gbc.gridy = 4;
         gbc.insets = new Insets(30, 0, 0, 0);
         JLabel infoLabel = new JLabel("Create temporary rooms that auto-destruct after time limit");
@@ -90,11 +90,11 @@ public class HomePanel extends JPanel {
         infoLabel.setForeground(UIConstants.TEXT_SECONDARY);
         add(infoLabel, gbc);
     }
-    
+
     private void handleCreateRoom() {
         CreateRoomDialog dialog = new CreateRoomDialog(parentFrame, homeController); // MODIFIED
         dialog.setVisible(true);
-        
+
         if (dialog.isRoomCreated()) {
             RoomInfo roomInfo = dialog.getRoomInfo();
             parentFrame.getRoomPanel().setRoomInfo(roomInfo);
@@ -102,11 +102,11 @@ public class HomePanel extends JPanel {
             parentFrame.showRoom();
         }
     }
-    
+
     private void handleJoinRoom() {
-       JoinRoomDialog dialog = new JoinRoomDialog(parentFrame, homeController); // MODIFIED
+        JoinRoomDialog dialog = new JoinRoomDialog(parentFrame, homeController); // MODIFIED
         dialog.setVisible(true);
-        
+
         if (dialog.isJoinSuccessful()) {
             RoomInfo roomInfo = dialog.getRoomInfo();
             parentFrame.getRoomPanel().setRoomInfo(roomInfo);
@@ -114,19 +114,19 @@ public class HomePanel extends JPanel {
             parentFrame.showRoom();
         }
     }
-    
+
     private void addHoverEffect(JButton button, Color normalColor, Color hoverColor) {
         button.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseEntered(java.awt.event.MouseEvent evt) {
                 button.setBackground(hoverColor);
             }
-            
+
             public void mouseExited(java.awt.event.MouseEvent evt) {
                 button.setBackground(normalColor);
             }
         });
     }
-    
+
     public void onPanelShown() {
         // Refresh panel if needed
     }

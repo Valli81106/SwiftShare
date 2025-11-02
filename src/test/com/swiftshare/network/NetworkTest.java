@@ -1,4 +1,8 @@
-package com.swiftshare.network;
+package test.com.swiftshare.network;
+
+import com.swiftshare.network.core.Message;
+import com.swiftshare.network.core.RoomClient;
+import com.swiftshare.network.core.RoomServer;
 
 // tests all the core networking stuff
 public class NetworkTest {

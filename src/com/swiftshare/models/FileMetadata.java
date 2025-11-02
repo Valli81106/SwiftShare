@@ -71,6 +71,17 @@ public class FileMetadata {
     public void setSenderId(String senderId) {
         this.senderId = senderId;
     }
+    public String getFormattedFileSize() {
+        if (fileSize < 1024) {
+            return fileSize + " B";
+        } else if (fileSize < 1024 * 1024) {
+            return String.format("%.2f KB", fileSize / 1024.0);
+        } else if (fileSize < 1024 * 1024 * 1024) {
+            return String.format("%.2f MB", fileSize / (1024.0 * 1024));
+        } else {
+            return String.format("%.2f GB", fileSize / (1024.0 * 1024 * 1024));
+        }
+    }
     @Override
     public String toString() {
         return "File: " + fileName + ", Size: " + fileSize + " bytes, Chunks: " + totalChunks;

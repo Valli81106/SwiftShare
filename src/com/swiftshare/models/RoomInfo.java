@@ -9,7 +9,7 @@ public class RoomInfo {
     private String passwordHash;
     private int port;
     private long createdTime;
-    long expiryTime;
+    private long expiryTime;
     private List<PeerInfo> connectedPeers;
 
     public RoomInfo(String roomId, int port) {
@@ -50,5 +50,8 @@ public class RoomInfo {
     }
     public void removePeer(PeerInfo peer) {
         connectedPeers.remove(peer);
+    }
+    public long getExpiryTime() {
+        return expiryTime;
     }
 }

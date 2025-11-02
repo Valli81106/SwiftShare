@@ -1,74 +1,93 @@
 package com.swiftshare.fileio.testing;
 
-import com.swiftshare.fileio.core.*;
+import com.swiftshare.fileio.core.FileChunkAssembler;
+import com.swiftshare.fileio.core.FileChunkManager;
+import com.swiftshare.fileio.core.FileValidator;
+import com.swiftshare.fileio.core.FileChunkData;
+import com.swiftshare.fileio.core.ReceivedChunkData;
 import java.io.*;
 
 /**
- * Test program to verify file chunking works
+ * Complete test: Chunk → Receive → Assemble → Validate
  */
 public class FullFileIOTest {
 
     public static void main(String[] args) {
-        System.out.println("=== FILE CHUNKER TEST ===\n");
+        System.out.println("=== COMPLETE FILE I/O TEST ===\n");
 
         try {
-            // Step 1: Create a test file
-            String testFileName = "test.txt";
-            int testFileSize = 200000; // 200KB
-            createTestFile(testFileName, testFileSize);
+            // 1. Create test file
+            String testFile = "original.dat";
+            int fileSize = 250000; // 250KB
+            createTestFile(testFile, fileSize);
 
-            // Step 2: Chunk the file
+            // 2. Calculate original checksum
+            System.out.println("\n--- Calculating Original Checksum ---");
+            FileValidator validator = new FileValidator();
+            String originalChecksum = validator.calculateChecksum(testFile);
+            System.out.println("Original checksum: " + originalChecksum);
+
+            // 3. SENDER SIDE: Chunk the file
+            System.out.println("\n--- SENDER: Chunking File ---");
             FileChunkManager chunker = new FileChunkManager();
+            FileChunkData chunkData = chunker.chunkFile(testFile);
 
-            System.out.println("\n--- Starting Chunking ---\n");
-            FileChunkData chunkData = chunker.chunkFile(testFileName);
+            // 4. RECEIVER SIDE: Simulate receiving chunks
+            System.out.println("\n--- RECEIVER: Receiving Chunks ---");
+            ReceivedChunkData received = new ReceivedChunkData(
+                    chunkData.fileName,
+                    chunkData.fileSize,
+                    chunkData.totalChunks
+            );
 
-            // Step 3: Verify results
-            System.out.println("\n--- Verification ---");
-            System.out.println("Original file size: " + testFileSize + " bytes");
-            System.out.println("Chunk data file size: " + chunkData.fileSize + " bytes");
-            System.out.println("Number of chunks: " + chunkData.totalChunks);
-            System.out.println("Expected chunks: " +
-                    Math.ceil((double)testFileSize / FileChunkManager.CHUNK_SIZE));
-
-            // Calculate total size of all chunks
-            long totalChunkSize = 0;
-            for (byte[] chunk : chunkData.chunks) {
-                totalChunkSize += chunk.length;
+            // Simulate chunks arriving over network
+            for (int i = 0; i < chunkData.totalChunks; i++) {
+                received.addChunk(i, chunkData.chunks[i]);
+                System.out.println("Progress: " + String.format("%.1f", received.getProgress()) + "%");
             }
-            System.out.println("Total chunk data: " + totalChunkSize + " bytes");
 
-            // Check if sizes match
-            if (totalChunkSize == testFileSize) {
-                System.out.println("\n✅ SUCCESS! Chunking works correctly!");
+            // 5. RECEIVER SIDE: Assemble file
+            System.out.println("\n--- RECEIVER: Assembling File ---");
+            FileChunkAssembler assembler = new FileChunkAssembler();
+            String outputFile = "received.dat";
+            assembler.assembleFile(received, outputFile);
+
+            // 6. Validate received file
+            System.out.println("\n--- Validating Received File ---");
+            boolean isValid = validator.validateFile(outputFile, originalChecksum);
+
+            // 7. Final result
+            if (isValid) {
+                System.out.println("\n🎉🎉🎉 SUCCESS! 🎉🎉🎉");
+                System.out.println("File transferred correctly!");
+                System.out.println("Original: " + testFile);
+                System.out.println("Received: " + outputFile);
             } else {
-                System.out.println("\n❌ FAILURE! Size mismatch!");
+                System.out.println("\n❌ FAILURE! File is corrupted!");
             }
 
         } catch (Exception e) {
-            System.err.println("\n❌ ERROR: " + e.getMessage());
+            System.err.println("\n❌ Test failed: " + e.getMessage());
             e.printStackTrace();
         }
     }
 
     /**
-     * Helper method to create a test file
+     * Create test file with random data
      */
     static void createTestFile(String fileName, int sizeInBytes) throws IOException {
-        System.out.println("Creating test file: " + fileName);
-        System.out.println("Size: " + sizeInBytes + " bytes");
+        System.out.println("Creating test file: " + fileName + " (" + sizeInBytes + " bytes)");
 
         try (FileOutputStream fos = new FileOutputStream(fileName)) {
             byte[] data = new byte[sizeInBytes];
 
-            // Fill with some pattern data
-            for (int i = 0; i < sizeInBytes; i++) {
-                data[i] = (byte) (i % 256);
-            }
+            // Use random data to make it realistic
+            java.util.Random random = new java.util.Random();
+            random.nextBytes(data);
 
             fos.write(data);
         }
 
-        System.out.println("✅ Test file created successfully");
+        System.out.println("✅ Test file created");
     }
 }
