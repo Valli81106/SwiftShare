@@ -11,7 +11,9 @@ public class RoomServer {
     // callback for when stuff happens
     public interface ServerCallback {
         void onPeerConnected(PeerConnection peer);
+
         void onPeerDisconnected(PeerConnection peer);
+
         void onMessageReceived(PeerConnection sender, Message message);
     }
 
@@ -55,10 +57,10 @@ public class RoomServer {
 
                 // Send current peer list to the new peer
                 sendPeerListTo(peer);
-                
+
                 // Notify all other peers about the new peer
-                Message peerJoinedMsg = new Message(Message.PEER_JOINED, 
-                    peer.getPeerId(), peer.getPeerAddress(), String.valueOf(peer.getPeerPort()));
+                Message peerJoinedMsg = new Message(Message.PEER_JOINED,
+                        peer.getPeerId(), peer.getPeerAddress(), String.valueOf(peer.getPeerPort()));
                 broadcastToOthers(peer, peerJoinedMsg);
 
                 if (callback != null) {
@@ -85,9 +87,9 @@ public class RoomServer {
             for (PeerConnection existingPeer : connectedPeers) {
                 if (existingPeer != newPeer && existingPeer.isConnected()) {
                     Message peerInfo = new Message(Message.PEER_JOINED,
-                        existingPeer.getPeerId(), 
-                        existingPeer.getPeerAddress(), 
-                        String.valueOf(existingPeer.getPeerPort()));
+                            existingPeer.getPeerId(),
+                            existingPeer.getPeerAddress(),
+                            String.valueOf(existingPeer.getPeerPort()));
                     newPeer.sendMessage(peerInfo);
                 }
             }
@@ -95,7 +97,7 @@ public class RoomServer {
             System.err.println("Failed to send peer list: " + e.getMessage());
         }
     }
-    
+
     private void handlePeer(PeerConnection peer) {
         try {
             while (peer.isConnected() && running) {
@@ -108,12 +110,6 @@ public class RoomServer {
                 System.out.println("Received " + message.getType() +
                         " from " + peer.getPeerAddress());
 
-                // Handle peer discovery messages
-                if (Message.REQUEST_PEER_LIST.equals(message.getType())) {
-                    sendPeerListTo(peer);
-                    continue;
-                }
-
                 if (callback != null) {
                     callback.onMessageReceived(peer, message);
                 } else {
@@ -125,10 +121,10 @@ public class RoomServer {
             System.out.println("Peer disconnected: " + peer.getPeerAddress());
         } finally {
             // Notify other peers that this peer left
-            Message peerLeftMsg = new Message(Message.PEER_LEFT, 
-                peer.getPeerId(), peer.getPeerAddress(), String.valueOf(peer.getPeerPort()));
+            Message peerLeftMsg = new Message(Message.PEER_LEFT,
+                    peer.getPeerId(), peer.getPeerAddress(), String.valueOf(peer.getPeerPort()));
             broadcastToOthers(peer, peerLeftMsg);
-            
+
             connectedPeers.remove(peer);
             peer.close();
 
@@ -137,7 +133,7 @@ public class RoomServer {
             }
         }
     }
-    
+
     // send to everyone except the sender
     public void broadcastToOthers(PeerConnection sender, Message message) {
         for (PeerConnection peer : connectedPeers) {
@@ -150,7 +146,7 @@ public class RoomServer {
             }
         }
     }
-    
+
     // send to everyone including sender
     public void broadcast(Message message) {
         for (PeerConnection peer : connectedPeers) {
@@ -193,7 +189,7 @@ public class RoomServer {
     public int getConnectedPeerCount() {
         return connectedPeers.size();
     }
-    
+
     public List<PeerConnection> getConnectedPeers() {
         return new ArrayList<>(connectedPeers);
     }
