@@ -1,14 +1,13 @@
 package com.swiftshare.gui.panels;
 
-import com.swiftshare.gui.frames.MainFrame;
+import com.swiftshare.gui.controllers.HomeController;
 import com.swiftshare.gui.dialogs.CreateRoomDialog;
 import com.swiftshare.gui.dialogs.JoinRoomDialog;
+import com.swiftshare.gui.frames.MainFrame;
 import com.swiftshare.gui.utils.UIConstants;
-import com.swiftshare.gui.controllers.HomeController;
 import com.swiftshare.models.RoomInfo;
-
-import javax.swing.*;
 import java.awt.*;
+import javax.swing.*;
 
 public class HomePanel extends JPanel {
     private MainFrame parentFrame;
@@ -92,7 +91,7 @@ public class HomePanel extends JPanel {
     }
 
     private void handleCreateRoom() {
-        CreateRoomDialog dialog = new CreateRoomDialog(parentFrame, homeController); // MODIFIED
+        CreateRoomDialog dialog = new CreateRoomDialog(parentFrame, homeController);
         dialog.setVisible(true);
 
         if (dialog.isRoomCreated()) {
@@ -104,7 +103,7 @@ public class HomePanel extends JPanel {
     }
 
     private void handleJoinRoom() {
-        JoinRoomDialog dialog = new JoinRoomDialog(parentFrame, homeController); // MODIFIED
+        JoinRoomDialog dialog = new JoinRoomDialog(parentFrame, homeController);
         dialog.setVisible(true);
 
         if (dialog.isJoinSuccessful()) {

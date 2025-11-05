@@ -18,15 +18,14 @@ public class HomeController {
 
     public HomeController() {
         discovery = new NetworkDiscovery();
+        // FIXED: Initialize NetworkManager immediately with a temporary callback
+        initializeNetworkManager();
     }
 
     /**
-     * Set the GUI callback that will receive all network events
+     * Initialize the network manager with default callback
      */
-    public void setGuiCallback(NetworkCallback callback) {
-        this.guiCallback = callback;
-        
-        // Create network manager with the GUI callback
+    private void initializeNetworkManager() {
         networkManager = new NetworkManager(new NetworkCallback() {
             @Override
             public void onRoomCreated(int port) {
@@ -104,6 +103,13 @@ public class HomeController {
     }
 
     /**
+     * Set the GUI callback that will receive all network events
+     */
+    public void setGuiCallback(NetworkCallback callback) {
+        this.guiCallback = callback;
+    }
+
+    /**
      * Get the network manager instance
      */
     public NetworkManager getNetworkManager() {
@@ -114,11 +120,6 @@ public class HomeController {
      * Create a new room and announce it on the network
      */
     public RoomInfo createRoom(String roomName, String password, int durationMinutes) {
-        if (networkManager == null) {
-            System.err.println("NetworkManager not initialized! Call setGuiCallback first.");
-            return null;
-        }
-
         int port = 8000 + (int)(Math.random() * 1000);
 
         boolean success = networkManager.createRoom(port);
@@ -143,11 +144,6 @@ public class HomeController {
      * Join an existing room
      */
     public RoomInfo joinRoom(String roomId, String password) {
-        if (networkManager == null) {
-            System.err.println("NetworkManager not initialized! Call setGuiCallback first.");
-            return null;
-        }
-
         String host = null;
         int port = 8000;
 
@@ -203,6 +199,14 @@ public class HomeController {
     private String discoverRoomHost(int port) {
         System.out.println("Starting room discovery for port " + port + "...");
         
+        // Try localhost first
+        System.out.println("Trying localhost...");
+        if (testConnection("localhost", port)) {
+            System.out.println("Found room on localhost");
+            return "localhost";
+        }
+        
+        // Try network discovery
         try {
             System.out.println("Listening for room announcements...");
             String result = discovery.listen(5000);
@@ -219,12 +223,7 @@ public class HomeController {
             System.err.println("Network discovery failed: " + e.getMessage());
         }
         
-        System.out.println("Trying localhost...");
-        if (testConnection("localhost", port)) {
-            System.out.println("Found room on localhost");
-            return "localhost";
-        }
-        
+        // Scan local network as last resort
         System.out.println("Scanning local network...");
         String localHost = scanLocalNetwork(port);
         if (localHost != null) {
