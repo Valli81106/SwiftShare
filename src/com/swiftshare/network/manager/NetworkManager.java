@@ -7,11 +7,10 @@ import com.swiftshare.network.core.PeerConnection;
 import com.swiftshare.network.core.RoomClient;
 import com.swiftshare.network.core.RoomServer;
 import com.swiftshare.network.transfer.FileTransferManager;
-
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 
-// main API for GUI and other teams
 public class NetworkManager {
     private RoomServer server;
     private RoomClient client;
@@ -27,50 +26,65 @@ public class NetworkManager {
         this.isHost = false;
     }
 
-    // create a new room (become host)
     public boolean createRoom(int port) {
         try {
             System.out.println("Creating room on port " + port + "...");
 
             server = new RoomServer(port);
-
-            // Set expiry time
             roomExpiryTime = System.currentTimeMillis() + DEFAULT_ROOM_DURATION;
-
-            // Start expiry check in background
             startExpiryCheck();
 
-            // setup callbacks for server events
             server.setCallback(new RoomServer.ServerCallback() {
                 @Override
                 public void onPeerConnected(PeerConnection peer) {
-                    System.out.println("Peer connected: " + peer.getPeerAddress());
+                    System.out.println("[SERVER] Peer connected: " + peer.getPeerAddress());
+                    
                     PeerInfo peerInfo = new PeerInfo(
                             peer.getPeerId(),
                             peer.getPeerAddress(),
                             peer.getPeerPort()
                     );
+                    
                     if (callback != null) {
                         callback.onPeerConnected(peerInfo);
                     }
+                    
+                    // Send current peer list to new peer
+                    sendPeerListToNewPeer(peer);
+                    
+                    // Notify all OTHER peers about the new peer
+                    Message newPeerMsg = new Message("PEER_JOINED", 
+                        peer.getPeerId(), 
+                        peer.getPeerAddress(), 
+                        String.valueOf(peer.getPeerPort())
+                    );
+                    server.broadcastToOthers(peer, newPeerMsg);
                 }
 
                 @Override
                 public void onPeerDisconnected(PeerConnection peer) {
-                    System.out.println("Peer disconnected: " + peer.getPeerAddress());
+                    System.out.println("[SERVER] Peer disconnected: " + peer.getPeerAddress());
+                    
                     PeerInfo peerInfo = new PeerInfo(
                             peer.getPeerId(),
                             peer.getPeerAddress(),
                             peer.getPeerPort()
                     );
+                    
                     if (callback != null) {
                         callback.onPeerDisconnected(peerInfo);
                     }
+                    
+                    // Notify all peers about disconnection
+                    Message peerLeftMsg = new Message("PEER_LEFT", peer.getPeerId());
+                    server.broadcast(peerLeftMsg);
                 }
 
                 @Override
                 public void onMessageReceived(PeerConnection sender, Message message) {
                     handleIncomingMessage(message);
+                    // Forward to all other peers
+                    server.broadcastToOthers(sender, message);
                 }
             });
 
@@ -82,28 +96,44 @@ public class NetworkManager {
                 callback.onRoomCreated(port);
             }
 
-            System.out.println("Room created successfully!");
+            System.out.println("[SERVER] Room created successfully!");
             return true;
 
         } catch (IOException e) {
-            System.err.println("Failed to create room: " + e.getMessage());
+            System.err.println("[SERVER] Failed to create room: " + e.getMessage());
             if (callback != null) {
                 callback.onError("Failed to create room: " + e.getMessage());
             }
             return false;
         }
     }
-    public boolean createRoom(int port, String password) {
-        boolean success = createRoom(port);
-        if (success && password != null && !password.isEmpty()) {
-            System.out.println("Room created with password protection");
+
+    private void sendPeerListToNewPeer(PeerConnection newPeer) {
+        try {
+            List<PeerConnection> peers = server.getConnectedPeers();
+            
+            System.out.println("[SERVER] Sending peer list to new peer. Total peers: " + peers.size());
+            
+            // Send info about each existing peer
+            for (PeerConnection existingPeer : peers) {
+                if (existingPeer != newPeer) {
+                    Message peerInfo = new Message("PEER_JOINED",
+                        existingPeer.getPeerId(),
+                        existingPeer.getPeerAddress(),
+                        String.valueOf(existingPeer.getPeerPort())
+                    );
+                    newPeer.sendMessage(peerInfo);
+                    System.out.println("[SERVER] Told new peer about: " + existingPeer.getPeerAddress());
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("[SERVER] Error sending peer list: " + e.getMessage());
         }
-        return success;
     }
-    // join an existing room
+
     public boolean joinRoom(String host, int port) {
         try {
-            System.out.println("Joining room at " + host + ":" + port + "...");
+            System.out.println("[CLIENT] Joining room at " + host + ":" + port + "...");
 
             client = new RoomClient(new RoomClient.ClientCallback() {
                 @Override
@@ -113,7 +143,7 @@ public class NetworkManager {
 
                 @Override
                 public void onDisconnected() {
-                    System.out.println("Disconnected from room");
+                    System.out.println("[CLIENT] Disconnected from room");
                     if (callback != null) {
                         callback.onConnectionLost();
                     }
@@ -121,7 +151,7 @@ public class NetworkManager {
 
                 @Override
                 public void onError(String error) {
-                    System.err.println("Error: " + error);
+                    System.err.println("[CLIENT] Error: " + error);
                     if (callback != null) {
                         callback.onError(error);
                     }
@@ -134,7 +164,6 @@ public class NetworkManager {
                 isHost = false;
                 currentRoomId = "ROOM_" + host + "_" + port;
 
-                // setup file transfer manager
                 transferManager = new FileTransferManager(client);
                 transferManager.setCallback(new FileTransferManager.TransferCallback() {
                     @Override
@@ -159,46 +188,125 @@ public class NetworkManager {
                     }
                 });
 
-                // send join message
+                // Send join message
                 client.sendMessage(new Message(Message.JOIN_ROOM, currentRoomId));
 
                 if (callback != null) {
                     callback.onRoomJoined(host, port);
                 }
 
-                System.out.println("Joined room successfully!");
+                System.out.println("[CLIENT] Joined room successfully!");
             }
 
             return connected;
 
         } catch (Exception e) {
-            System.err.println("Failed to join room: " + e.getMessage());
+            System.err.println("[CLIENT] Failed to join room: " + e.getMessage());
             if (callback != null) {
                 callback.onError("Failed to join room: " + e.getMessage());
             }
             return false;
         }
     }
-    public boolean joinRoom(String host, int port, String password) {
-        // Send password when joining
-        boolean connected = joinRoom(host, port);
-        if (connected && password != null) {
-            // Send password verification message
-            client.sendMessage(new Message("PASSWORD_CHECK", password));
+
+    private void handleIncomingMessage(Message message) {
+        String type = message.getType();
+        System.out.println("[NETWORK] Received message: " + type);
+
+        switch (type) {
+            case "PEER_JOINED":
+                String peerId = message.getData(0);
+                String peerAddress = message.getData(1);
+                int peerPort = Integer.parseInt(message.getData(2));
+                
+                System.out.println("[NETWORK] New peer joined: " + peerAddress);
+                
+                PeerInfo newPeer = new PeerInfo(peerId, peerAddress, peerPort);
+                if (callback != null) {
+                    callback.onPeerConnected(newPeer);
+                }
+                break;
+
+            case "PEER_LEFT":
+                String leftPeerId = message.getData(0);
+                System.out.println("[NETWORK] Peer left: " + leftPeerId);
+                
+                // Create a basic PeerInfo for the left peer
+                PeerInfo leftPeer = new PeerInfo(leftPeerId, "unknown", 0);
+                if (callback != null) {
+                    callback.onPeerDisconnected(leftPeer);
+                }
+                break;
+
+            case Message.JOIN_ROOM:
+                System.out.println("[NETWORK] Peer joined the room");
+                break;
+
+            case Message.FILE_OFFER:
+                String fileName = message.getData(0);
+                long fileSize = Long.parseLong(message.getData(1));
+                int totalChunks = Integer.parseInt(message.getData(2));
+                String fileHash = message.getData(3);
+
+                FileMetadata metadata = new FileMetadata(fileName, fileSize, fileHash, totalChunks);
+
+                System.out.println("[NETWORK] File offer received: " + fileName +
+                        " (" + formatFileSize(fileSize) + ")");
+
+                if (callback != null) {
+                    callback.onFileOfferReceived(metadata);
+                }
+                break;
+
+            case Message.FILE_ACCEPT:
+                System.out.println("[NETWORK] Peer accepted file transfer");
+                break;
+
+            case Message.FILE_REJECT:
+                System.out.println("[NETWORK] Peer rejected file transfer");
+                if (callback != null) {
+                    callback.onError("File transfer rejected by peer");
+                }
+                break;
+
+            case Message.CHUNK_META:
+                System.out.println("[NETWORK] Receiving file chunk...");
+                break;
+
+            case Message.FILE_COMPLETE:
+                String completedFile = message.getData(0);
+                System.out.println("[NETWORK] File transfer completed: " + completedFile);
+                if (callback != null) {
+                    callback.onTransferComplete(completedFile);
+                }
+                break;
+
+            case Message.HEARTBEAT:
+                break;
+
+            case Message.ERROR:
+                String error = message.getData(0);
+                System.err.println("[NETWORK] Error from peer: " + error);
+                if (callback != null) {
+                    callback.onError("Peer error: " + error);
+                }
+                break;
+
+            default:
+                System.out.println("[NETWORK] Unknown message type: " + type);
         }
-        return connected;
     }
-    // send a file to all peers
+
     public void sendFile(File file, byte[][] chunks, FileMetadata metadata) {
         if (client == null || !client.isConnected()) {
-            System.err.println("Not connected to a room!");
+            System.err.println("[NETWORK] Not connected to a room!");
             if (callback != null) {
                 callback.onError("Not connected to a room");
             }
             return;
         }
 
-        System.out.println("Initiating file transfer: " + file.getName());
+        System.out.println("[NETWORK] Initiating file transfer: " + file.getName());
 
         if (transferManager == null) {
             transferManager = new FileTransferManager(client);
@@ -229,91 +337,22 @@ public class NetworkManager {
         transferManager.sendFile(metadata, chunks);
     }
 
-    // handle messages from other peers
-    private void handleIncomingMessage(Message message) {
-        String type = message.getType();
-
-        switch (type) {
-            case Message.JOIN_ROOM:
-                System.out.println("Peer joined the room");
-                break;
-
-            case Message.FILE_OFFER:
-                // parse file info
-                String fileName = message.getData(0);
-                long fileSize = Long.parseLong(message.getData(1));
-                int totalChunks = Integer.parseInt(message.getData(2));
-                String fileHash = message.getData(3);
-
-                FileMetadata metadata = new FileMetadata(fileName, fileSize, fileHash, totalChunks);
-
-                System.out.println("File offer received: " + fileName +
-                        " (" + formatFileSize(fileSize) + ")");
-
-                if (callback != null) {
-                    callback.onFileOfferReceived(metadata);
-                }
-                break;
-
-            case Message.FILE_ACCEPT:
-                System.out.println("Peer accepted file transfer");
-                break;
-
-            case Message.FILE_REJECT:
-                System.out.println("Peer rejected file transfer");
-                if (callback != null) {
-                    callback.onError("File transfer rejected by peer");
-                }
-                break;
-
-            case Message.CHUNK_META:
-                System.out.println("Receiving file chunk...");
-                break;
-
-            case Message.FILE_COMPLETE:
-                String completedFile = message.getData(0);
-                System.out.println("File transfer completed: " + completedFile);
-                if (callback != null) {
-                    callback.onTransferComplete(completedFile);
-                }
-                break;
-
-            case Message.HEARTBEAT:
-                // just keepalive, nothing to do
-                break;
-
-            case Message.ERROR:
-                String error = message.getData(0);
-                System.err.println("Error from peer: " + error);
-                if (callback != null) {
-                    callback.onError("Peer error: " + error);
-                }
-                break;
-
-            default:
-                System.out.println("Unknown message type: " + type);
-        }
-    }
-
-    // accept a file from another peer
     public void acceptFileOffer(String fileName) {
         if (client != null && client.isConnected()) {
             client.sendMessage(new Message(Message.FILE_ACCEPT, fileName));
-            System.out.println("Accepted file: " + fileName);
+            System.out.println("[NETWORK] Accepted file: " + fileName);
         }
     }
 
-    // reject a file offer
     public void rejectFileOffer(String fileName) {
         if (client != null && client.isConnected()) {
             client.sendMessage(new Message(Message.FILE_REJECT, fileName));
-            System.out.println("Rejected file: " + fileName);
+            System.out.println("[NETWORK] Rejected file: " + fileName);
         }
     }
 
-    // disconnect and cleanup
     public void disconnect() {
-        System.out.println("Disconnecting...");
+        System.out.println("[NETWORK] Disconnecting...");
 
         if (client != null) {
             client.sendMessage(new Message(Message.LEAVE_ROOM));
@@ -333,19 +372,17 @@ public class NetworkManager {
         isHost = false;
         currentRoomId = null;
 
-        System.out.println("Disconnected");
+        System.out.println("[NETWORK] Disconnected");
     }
-    // Add after disconnect() method
 
-    // start checking if room expired
     private void startExpiryCheck() {
         new Thread(() -> {
             while (isHost && server != null) {
                 try {
-                    Thread.sleep(60000); // check every minute
+                    Thread.sleep(60000);
 
                     if (System.currentTimeMillis() > roomExpiryTime) {
-                        System.out.println("Room expired!");
+                        System.out.println("[NETWORK] Room expired!");
                         if (callback != null) {
                             callback.onError("Room expired after 24 hours");
                         }
@@ -359,14 +396,12 @@ public class NetworkManager {
         }).start();
     }
 
-    // GUI can call this to get remaining time
     public long getRemainingTime() {
         if (!isHost) return -1;
         long remaining = roomExpiryTime - System.currentTimeMillis();
         return remaining > 0 ? remaining : 0;
     }
 
-    // GUI can call this to format time nicely
     public String getRemainingTimeString() {
         long ms = getRemainingTime();
         if (ms <= 0) return "Expired";
@@ -377,7 +412,6 @@ public class NetworkManager {
         return hours + "h " + minutes + "m remaining";
     }
 
-    // Allow custom duration (optional)
     public boolean createRoom(int port, long durationMs) {
         boolean success = createRoom(port);
         if (success) {
@@ -409,7 +443,6 @@ public class NetworkManager {
         return 0;
     }
 
-    // helper to format file sizes nicely
     private String formatFileSize(long bytes) {
         if (bytes < 1024) {
             return bytes + " B";

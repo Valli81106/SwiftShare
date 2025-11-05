@@ -1,7 +1,7 @@
 package com.swiftshare.network.core;
 
-import java.net.*;
 import java.io.*;
+import java.net.*;
 
 // handles connection to a single peer
 public class PeerConnection {
