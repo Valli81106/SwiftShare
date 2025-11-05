@@ -1,98 +1,137 @@
-
 package com.swiftshare.gui.controllers;
 
-import com.swiftshare.models.RoomInfo;
-import com.swiftshare.models.PeerInfo;
 import com.swiftshare.models.FileMetadata;
-import com.swiftshare.network.manager.NetworkManager;
-import com.swiftshare.network.manager.NetworkCallback;
+import com.swiftshare.models.PeerInfo;
+import com.swiftshare.models.RoomInfo;
 import com.swiftshare.network.discovery.NetworkDiscovery;
-
-import java.net.*;
+import com.swiftshare.network.manager.NetworkCallback;
+import com.swiftshare.network.manager.NetworkManager;
 import java.io.*;
-import java.time.LocalDateTime;
+import java.net.*;
 import java.util.*;
 
 public class HomeController {
 
     private NetworkManager networkManager;
     private NetworkDiscovery discovery;
+    private NetworkCallback guiCallback;
 
     public HomeController() {
         discovery = new NetworkDiscovery();
+    }
+
+    /**
+     * Set the GUI callback that will receive all network events
+     */
+    public void setGuiCallback(NetworkCallback callback) {
+        this.guiCallback = callback;
         
-        // Initialize network manager with callback
+        // Create network manager with the GUI callback
         networkManager = new NetworkManager(new NetworkCallback() {
             @Override
             public void onRoomCreated(int port) {
                 System.out.println("Room created on port: " + port);
-                // Announce the room on the network
                 announceRoom(port);
+                if (guiCallback != null) {
+                    guiCallback.onRoomCreated(port);
+                }
             }
 
             @Override
             public void onRoomJoined(String host, int port) {
                 System.out.println("Joined room at " + host + ":" + port);
+                if (guiCallback != null) {
+                    guiCallback.onRoomJoined(host, port);
+                }
             }
 
             @Override
             public void onPeerConnected(PeerInfo peer) {
                 System.out.println("Peer connected: " + peer.getPeerName());
+                if (guiCallback != null) {
+                    guiCallback.onPeerConnected(peer);
+                }
             }
 
             @Override
             public void onPeerDisconnected(PeerInfo peer) {
                 System.out.println("Peer disconnected: " + peer.getPeerName());
+                if (guiCallback != null) {
+                    guiCallback.onPeerDisconnected(peer);
+                }
             }
 
             @Override
             public void onFileOfferReceived(FileMetadata metadata) {
                 System.out.println("File offer received: " + metadata.getFileName());
+                if (guiCallback != null) {
+                    guiCallback.onFileOfferReceived(metadata);
+                }
             }
 
             @Override
             public void onTransferProgress(String fileName, double percent, String speed) {
                 System.out.println("Transfer progress: " + fileName + " - " + percent + "%");
+                if (guiCallback != null) {
+                    guiCallback.onTransferProgress(fileName, percent, speed);
+                }
             }
 
             @Override
             public void onTransferComplete(String fileName) {
                 System.out.println("Transfer complete: " + fileName);
+                if (guiCallback != null) {
+                    guiCallback.onTransferComplete(fileName);
+                }
             }
 
             @Override
             public void onConnectionLost() {
                 System.out.println("Connection lost!");
+                if (guiCallback != null) {
+                    guiCallback.onConnectionLost();
+                }
             }
 
             @Override
             public void onError(String error) {
                 System.err.println("Error: " + error);
+                if (guiCallback != null) {
+                    guiCallback.onError(error);
+                }
             }
         });
+    }
+
+    /**
+     * Get the network manager instance
+     */
+    public NetworkManager getNetworkManager() {
+        return networkManager;
     }
 
     /**
      * Create a new room and announce it on the network
      */
     public RoomInfo createRoom(String roomName, String password, int durationMinutes) {
-        // Generate a port (you can make this configurable)
-        int port = 8000 + (int)(Math.random() * 1000); // Random port 8000-9000
+        if (networkManager == null) {
+            System.err.println("NetworkManager not initialized! Call setGuiCallback first.");
+            return null;
+        }
+
+        int port = 8000 + (int)(Math.random() * 1000);
 
         boolean success = networkManager.createRoom(port);
 
         if (success) {
-            // Create RoomInfo
             String roomId = "ROOM_" + port;
             RoomInfo roomInfo = new RoomInfo(roomId, port);
-            roomInfo.setPasswordHash(password); // Store password (should be hashed by security team)
+            roomInfo.setPasswordHash(password);
 
-            // Get and display the host IP for others to connect
             String hostIP = getLocalIPAddress();
             System.out.println("Room created! Share this information:");
             System.out.println("Room ID: " + roomId);
             System.out.println("Host IP: " + hostIP + ":" + port);
-            System.out.println("Or clients can use: " + hostIP + ":" + port);
 
             return roomInfo;
         }
@@ -101,38 +140,38 @@ public class HomeController {
     }
 
     /**
-     * Join an existing room with improved host discovery
+     * Join an existing room
      */
     public RoomInfo joinRoom(String roomId, String password) {
+        if (networkManager == null) {
+            System.err.println("NetworkManager not initialized! Call setGuiCallback first.");
+            return null;
+        }
+
         String host = null;
         int port = 8000;
 
         try {
             if (roomId.contains(":")) {
-                // Format: "192.168.1.5:8123" or "localhost:8123"
                 String[] parts = roomId.split(":");
                 host = parts[0];
                 port = Integer.parseInt(parts[1]);
                 System.out.println("Parsed host:port format - " + host + ":" + port);
             } else if (roomId.startsWith("ROOM_")) {
-                // Format: "ROOM_8123" - need to discover the host
                 port = Integer.parseInt(roomId.substring(5));
                 System.out.println("Discovering host for room port: " + port);
                 host = discoverRoomHost(port);
                 if (host == null) {
-                    System.err.println("Could not find host for room: " + roomId);
-                    System.err.println("Try using the format: IP_ADDRESS:" + port);
+                    System.err.println("Could not find host. Try format: IP_ADDRESS:" + port);
                     return null;
                 }
             } else {
-                // Just a port number - need to discover the host
                 try {
                     port = Integer.parseInt(roomId);
                     System.out.println("Discovering host for port: " + port);
                     host = discoverRoomHost(port);
                     if (host == null) {
-                        System.err.println("Could not find host for port: " + port);
-                        System.err.println("Try using the format: IP_ADDRESS:" + port);
+                        System.err.println("Could not find host. Try format: IP_ADDRESS:" + port);
                         return null;
                     }
                 } catch (NumberFormatException e) {
@@ -149,16 +188,10 @@ public class HomeController {
         boolean success = networkManager.joinRoom(host, port);
 
         if (success) {
-            // Create RoomInfo for joined room
             RoomInfo roomInfo = new RoomInfo(roomId, port);
             return roomInfo;
         } else {
             System.err.println("Failed to connect to " + host + ":" + port);
-            System.err.println("Please verify:");
-            System.err.println("1. The host IP address is correct");
-            System.err.println("2. The port number is correct"); 
-            System.err.println("3. Both devices are on the same network");
-            System.err.println("4. No firewall is blocking the connection");
         }
 
         return null;
@@ -170,10 +203,9 @@ public class HomeController {
     private String discoverRoomHost(int port) {
         System.out.println("Starting room discovery for port " + port + "...");
         
-        // Method 1: Network discovery (broadcast)
         try {
             System.out.println("Listening for room announcements...");
-            String result = discovery.listen(5000); // 5 second timeout
+            String result = discovery.listen(5000);
             
             if (result != null && result.contains(":")) {
                 String[] parts = result.split(":");
@@ -187,14 +219,12 @@ public class HomeController {
             System.err.println("Network discovery failed: " + e.getMessage());
         }
         
-        // Method 2: Try localhost first
         System.out.println("Trying localhost...");
         if (testConnection("localhost", port)) {
             System.out.println("Found room on localhost");
             return "localhost";
         }
         
-        // Method 3: Scan local network
         System.out.println("Scanning local network...");
         String localHost = scanLocalNetwork(port);
         if (localHost != null) {
@@ -207,4 +237,109 @@ public class HomeController {
     }
 
     /**
-     *
+     * Test if we can connect to a host
+     */
+    private boolean testConnection(String host, int port) {
+        try (Socket socket = new Socket()) {
+            socket.connect(new InetSocketAddress(host, port), 1000);
+            return true;
+        } catch (IOException e) {
+            return false;
+        }
+    }
+
+    /**
+     * Scan local network for the room
+     */
+    private String scanLocalNetwork(int port) {
+        try {
+            String localIP = getLocalIPAddress();
+            String subnet = localIP.substring(0, localIP.lastIndexOf('.'));
+            
+            for (int i = 1; i < 255; i++) {
+                String testIP = subnet + "." + i;
+                if (testConnection(testIP, port)) {
+                    return testIP;
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Network scan failed: " + e.getMessage());
+        }
+        return null;
+    }
+
+    /**
+     * Announce room on network
+     */
+    private void announceRoom(int port) {
+        try {
+            discovery.announce(port);
+        } catch (IOException e) {
+            System.err.println("Failed to announce room: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Get local IP address
+     */
+    private String getLocalIPAddress() {
+        try {
+            Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
+            while (interfaces.hasMoreElements()) {
+                NetworkInterface iface = interfaces.nextElement();
+                
+                if (iface.isLoopback() || !iface.isUp()) {
+                    continue;
+                }
+                
+                Enumeration<InetAddress> addresses = iface.getInetAddresses();
+                while (addresses.hasMoreElements()) {
+                    InetAddress addr = addresses.nextElement();
+                    
+                    if (addr instanceof Inet4Address && !addr.isLoopbackAddress()) {
+                        return addr.getHostAddress();
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Failed to get local IP: " + e.getMessage());
+        }
+        return "127.0.0.1";
+    }
+
+    /**
+     * Validate room ID format
+     */
+    public boolean isValidRoomId(String roomId) {
+        if (roomId == null || roomId.trim().isEmpty()) {
+            return false;
+        }
+        
+        if (roomId.contains(":")) {
+            String[] parts = roomId.split(":");
+            if (parts.length != 2) return false;
+            try {
+                Integer.parseInt(parts[1]);
+                return true;
+            } catch (NumberFormatException e) {
+                return false;
+            }
+        }
+        
+        if (roomId.startsWith("ROOM_")) {
+            try {
+                Integer.parseInt(roomId.substring(5));
+                return true;
+            } catch (NumberFormatException e) {
+                return false;
+            }
+        }
+        
+        try {
+            Integer.parseInt(roomId);
+            return true;
+        } catch (NumberFormatException e) {
+            return false;
+        }
+    }
+}
