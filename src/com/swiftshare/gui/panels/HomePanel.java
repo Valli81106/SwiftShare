@@ -1,13 +1,14 @@
 package com.swiftshare.gui.panels;
 
-import com.swiftshare.gui.controllers.HomeController;
+import com.swiftshare.gui.frames.MainFrame;
 import com.swiftshare.gui.dialogs.CreateRoomDialog;
 import com.swiftshare.gui.dialogs.JoinRoomDialog;
-import com.swiftshare.gui.frames.MainFrame;
 import com.swiftshare.gui.utils.UIConstants;
+import com.swiftshare.gui.controllers.HomeController;
 import com.swiftshare.models.RoomInfo;
-import java.awt.*;
+
 import javax.swing.*;
+import java.awt.*;
 
 public class HomePanel extends JPanel {
     private MainFrame parentFrame;
@@ -96,8 +97,15 @@ public class HomePanel extends JPanel {
 
         if (dialog.isRoomCreated()) {
             RoomInfo roomInfo = dialog.getRoomInfo();
+            
+            // Set up room panel first
             parentFrame.getRoomPanel().setRoomInfo(roomInfo);
             parentFrame.getRoomPanel().setNetworkManager(homeController.getNetworkManager());
+            
+            // Connect the room panel to receive network events
+            homeController.setGuiCallback(parentFrame.getRoomPanel().getNetworkCallback());
+            
+            // Show the room
             parentFrame.showRoom();
         }
     }
@@ -108,8 +116,15 @@ public class HomePanel extends JPanel {
 
         if (dialog.isJoinSuccessful()) {
             RoomInfo roomInfo = dialog.getRoomInfo();
+            
+            // Set up room panel first
             parentFrame.getRoomPanel().setRoomInfo(roomInfo);
             parentFrame.getRoomPanel().setNetworkManager(homeController.getNetworkManager());
+            
+            // Connect the room panel to receive network events
+            homeController.setGuiCallback(parentFrame.getRoomPanel().getNetworkCallback());
+            
+            // Show the room
             parentFrame.showRoom();
         }
     }

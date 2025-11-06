@@ -107,6 +107,17 @@ public class HomeController {
      */
     public void setGuiCallback(NetworkCallback callback) {
         this.guiCallback = callback;
+        System.out.println("[HomeController] GUI callback set");
+    }
+    
+    /**
+     * Add an additional callback for room panel updates
+     */
+    public void addRoomCallback(NetworkCallback callback) {
+        // Store this as an additional callback
+        // The main callback in NetworkManager will forward to both
+        this.guiCallback = callback;
+        System.out.println("[HomeController] Room callback added");
     }
 
     /**
